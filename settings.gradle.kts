@@ -23,7 +23,7 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
         google()
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        maven("https://packages.jetbrains.team/maven/p/compose/dev")
     }
 }
 
@@ -43,7 +43,7 @@ dependencyResolutionManagement {
         maven("https://yuroyami.github.io/maven") {
             content { includeModuleByRegex("io\\.github\\.yuroyami", "libmpvkt.*") }
         }
-        maven("https://maven.pkg.jetbrains.space/public/p/compose/dev")
+        maven("https://packages.jetbrains.team/maven/p/compose/dev")
         // NewPipe Extractor (the YouTube, SoundCloud and PeerTube resolver on Android and
         // desktop), and nothing else. Without the filter, JitPack can answer for any coordinate
         // that Central and Google miss.
