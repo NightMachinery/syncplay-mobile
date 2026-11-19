@@ -58,6 +58,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import app.uicomponents.glassEnabledNow
 
 class ExoImpl(vm: RoomViewmodel) : PlayerImpl(vm, ExoEngine) {
+    override val supportsSharedPlaybackSpeed = true
+
 
     var exoplayer: ExoPlayer? = null
     private lateinit var exoView: PlayerView

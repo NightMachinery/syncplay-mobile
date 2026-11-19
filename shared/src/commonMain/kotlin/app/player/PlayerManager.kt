@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlin.time.TimeSource
@@ -53,6 +54,34 @@ class PlayerManager(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel) {
     //TODO Remove in favor of media.fileTimePos
     val timeCurrentMillis = MutableStateFlow<Long>(0L)
 
+    private data class PlaybackRate(val value: Double = 1.0, val generation: Long = 0)
+
+    private val playbackRate = MutableStateFlow(PlaybackRate())
+    @Volatile
+    internal var appliedPlaybackRate = 1.0
+        private set
+
+    internal fun startPlaybackRateUpdates() {
+        if (!player.supportsSharedPlaybackSpeed) return
+        viewmodel.viewModelScope.launch {
+            playbackRate.collect { command ->
+                if (!player.isInitialized) return@collect
+                player.setSpeed(command.value)
+                samplePosition(estimatedPositionMs())
+                appliedPlaybackRate = command.value
+            }
+        }
+    }
+
+    internal fun usePlaybackRate(value: Double) {
+        playbackRate.update { it.copy(value = value) }
+    }
+
+    internal fun reapplyPlaybackRate() {
+        // mpv may recreate its native core when a different file opens.
+        playbackRate.update { it.copy(generation = it.generation + 1) }
+    }
+
     /** Wall clock (ms) of the last [timeCurrentMillis] sample, for [estimatedPositionMs]. */
     @Volatile
     private var timeCurrentSampledAtMs: Long = 0L
@@ -75,7 +104,7 @@ class PlayerManager(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel) {
         if (sampledAt <= 0L) return sampled
         val age = generateTimestampMillis() - sampledAt
         // Do not extrapolate a stale sample forever. After two seconds, the tracker has stopped.
-        return if (age in 0L..2_000L) sampled + age else sampled
+        return if (age in 0L..2_000L) sampled + (age * appliedPlaybackRate).toLong() else sampled
     }
 
     /** Buffered position in ms, or -1 when the engine cannot say. */

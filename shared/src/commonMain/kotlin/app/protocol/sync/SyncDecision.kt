@@ -70,6 +70,7 @@ data class SyncContext(
     val fastForwardThreshold: Double = FASTFORWARD_THRESHOLD,
     /** True while the position cache still belongs to a seek that Main has not applied. */
     val seekPending: Boolean = false,
+    val roomRate: Double = 1.0,
 )
 
 /** What the handler should do, in the order given. */
@@ -149,7 +150,7 @@ fun decideSync(playstate: PlaystateData?, state: SyncState, ctx: SyncContext): S
     // When the room is playing, the position the server sent is already messageAge seconds
     // stale, so the position to compare against is position + messageAge. The user's own offset
     // shifts that to where *our* copy should be.
-    val roomPosition = if (paused) position else position + ctx.messageAge
+    val roomPosition = if (paused) position else position + ctx.messageAge * ctx.roomRate
     val agedPosition = roomPosition + ctx.userOffsetSeconds
 
     /* ONLY a genuine room-state transition: the last room pause-state we recorded differs from

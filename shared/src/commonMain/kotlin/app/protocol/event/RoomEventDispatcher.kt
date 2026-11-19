@@ -39,6 +39,7 @@ class RoomEventDispatcher(val viewmodel: RoomViewmodel) : AbstractManager(viewmo
     val session = viewmodel.session
 
     suspend fun sendHello() {
+        viewmodel.protocol.resetRoomSpeed()
         val passwordHash = session.currentPassword.takeIf { it.isNotEmpty() }
             ?.let { md5(it).toHexString(HexFormat.Default) }
         network.send(
@@ -51,7 +52,7 @@ class RoomEventDispatcher(val viewmodel: RoomViewmodel) : AbstractManager(viewmo
                     // `realversion` the actual protocol version (`sendHello` in protocols.py).
                     version = SYNCPLAY_LEGACY_VERSION,
                     realversion = SYNCPLAY_PROTOCOL_VERSION,
-                    features = clientFeatures
+                    features = clientFeatures.copy(sharedPlaybackSpeed = viewmodel.player.supportsSharedPlaybackSpeed)
                 )
             )
         )

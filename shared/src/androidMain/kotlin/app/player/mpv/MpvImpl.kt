@@ -74,6 +74,8 @@ import kotlin.time.Duration.Companion.milliseconds
 import io.github.yuroyami.libmpvkt.TrackType as MpvTrackType
 
 class MpvImpl(vm: RoomViewmodel) : PlayerImpl(vm, MpvEngine) {
+    override val supportsSharedPlaybackSpeed = true
+
     override val supportsVideoTrackSelection = true
 
     // The alang and slang core options apply the preferred languages on every file.

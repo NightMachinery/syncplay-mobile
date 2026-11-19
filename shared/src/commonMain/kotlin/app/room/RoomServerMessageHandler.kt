@@ -8,6 +8,8 @@ import app.preferences.Preferences
 import app.preferences.value
 import app.protocol.ProtocolManager.Companion.SLOWDOWN_RATE
 import app.protocol.sync.SyncAction
+import app.protocol.sync.NUDGE_RATE
+import app.protocol.sync.roomSpeedRange
 import app.protocol.sync.LocalSeek
 import app.protocol.sync.PendingSeekPosition
 import app.protocol.sync.SyncContext
@@ -123,6 +125,8 @@ class RoomServerMessageHandler(private val viewmodel: RoomViewmodel) : WireMessa
         var pendingActions: List<Pair<SyncAction, PendingSeekPosition?>> = emptyList()
         synchronized(protocol.syncLock) {
             decisionMedia = viewmodel.media
+            protocol.readRoomSpeed(state.playstate)
+            val roomRate = protocol.roomSpeed.value?.rate ?: 1.0
             protocol.syncState = protocol.syncState.withIgnoringOnTheFly(state.ignoringOnTheFly)
             localSeek = protocol.consumeLocalSeekEcho(state)
             // A second user seek must survive the forced echo of the first seek. The latest queued
@@ -152,10 +156,16 @@ class RoomServerMessageHandler(private val viewmodel: RoomViewmodel) : WireMessa
                 fastForwardThreshold = Preferences.SYNC_FASTFORWARD_THRESHOLD.value() / 10.0,
                 userOffsetSeconds = protocol.userTimeOffsetSeconds(),
                 seekPending = protocol.isSeekPending,
+                roomRate = roomRate,
             )
             decideSync(playstate = state.playstate, state = before, ctx = ctx).also { outcome ->
                 viewmodel.sessionTap?.decision(state.playstate, before, ctx, outcome)
                 protocol.syncState = outcome.state
+                if (viewmodel.player.supportsSharedPlaybackSpeed) {
+                    val correction = if (outcome.state.speedChanged) SLOWDOWN_RATE
+                        else 1.0 + outcome.state.nudgeLevel * NUDGE_RATE
+                    viewmodel.playerManager.usePlaybackRate((roomRate * correction).coerceIn(roomSpeedRange))
+                }
                 // Queue every accepted seek target before an ACK can open the server's stale-report
                 // gate.
                 pendingActions = outcome.actions.map { it to protocol.queueSeekPosition(it) }
@@ -246,18 +256,18 @@ class RoomServerMessageHandler(private val viewmodel: RoomViewmodel) : WireMessa
                 is SyncAction.SomeonePlayed -> callback.onSomeonePlayed(action.by)
                 is SyncAction.SomeonePaused -> callback.onSomeonePaused(action.by)
                 is SyncAction.SlowDown -> {
-                    viewmodel.player.setSpeed(SLOWDOWN_RATE)
+                    if (!viewmodel.player.supportsSharedPlaybackSpeed) viewmodel.player.setSpeed(SLOWDOWN_RATE)
                     // The slowdown notice of the PC client. The user must see why playback slowed.
                     viewmodel.dispatchOSD(OSDCategory.SLOWDOWN) { Localization.strings.roomSlowdownNotification(action.by) }
                 }
                 SyncAction.RestoreSpeed -> {
-                    viewmodel.player.setSpeed(1.0)
+                    if (!viewmodel.player.supportsSharedPlaybackSpeed) viewmodel.player.setSpeed(1.0)
                     viewmodel.dispatchOSD(OSDCategory.SLOWDOWN) { Localization.strings.roomSlowdownReverted }
                 }
                 // No notice: the nudge is too small for anyone to notice. The log line is for testers.
                 is SyncAction.Nudge -> {
                     loggy("Sync: speed nudged to ${action.rate}")
-                    viewmodel.player.setSpeed(action.rate)
+                    if (!viewmodel.player.supportsSharedPlaybackSpeed) viewmodel.player.setSpeed(action.rate)
                 }
             }
         }

@@ -92,6 +92,9 @@ abstract class PlayerImpl(val viewmodel: RoomViewmodel, val engine: PlayerEngine
     /** Whether room drift correction may temporarily request a playback rate other than 1.0. */
     open val supportsSpeedAdjustment: Boolean = true
 
+    /** Whether the engine can adopt the room's full 0.25× to 4× range. */
+    open val supportsSharedPlaybackSpeed: Boolean = false
+
     /** True when the engine reports a new file itself, from its own "file loaded" event, through
      *  [onEngineFileReady]. [parseMedia] then skips its iOS call. An engine with no load event
      *  leaves this false and relies on the [parseMedia] call. */
@@ -576,6 +579,7 @@ abstract class PlayerImpl(val viewmodel: RoomViewmodel, val engine: PlayerEngine
         if (media === announcedMedia) return onEngineDurationChanged(durationMs)
         publishDuration(media, durationMs)
         announcedMedia = media
+        if (supportsSharedPlaybackSpeed) playerManager.reapplyPlaybackRate()
         announceFileLoaded()
         // The tracks are known once the file opened, so the language rule runs now, not when a panel opens.
         playerScopeMain.launch {

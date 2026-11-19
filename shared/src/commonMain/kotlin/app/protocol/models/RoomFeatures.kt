@@ -1,5 +1,7 @@
 package app.protocol.models
 
+import kotlinx.serialization.EncodeDefault
+import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.SerializationException
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.SerialName
@@ -35,7 +37,10 @@ data class RoomFeatures(
     val maxChatMessageLength: Int = 150,
     val maxUsernameLength: Int = 16,
     val maxRoomNameLength: Int = 35,
-    val maxFilenameLength: Int = 250
+    val maxFilenameLength: Int = 250,
+    @OptIn(ExperimentalSerializationApi::class)
+    @EncodeDefault(EncodeDefault.Mode.NEVER)
+    val sharedPlaybackSpeed: Boolean = false
 )
 
 /**

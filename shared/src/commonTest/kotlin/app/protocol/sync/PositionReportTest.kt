@@ -47,6 +47,12 @@ class PositionReportTest {
     }
 
     @Test
+    fun a_playing_room_advances_at_its_shared_rate() {
+        val at = extrapolatedGlobalPositionMs(inputs(now = t0 + 3.seconds).copy(roomRate = 1.5))
+        assertEquals(104_500.0, at)
+    }
+
+    @Test
     fun a_paused_room_stays_where_it_was() {
         val at = extrapolatedGlobalPositionMs(inputs(now = t0 + 3.seconds, paused = true))
         assertEquals(100_000.0, at)

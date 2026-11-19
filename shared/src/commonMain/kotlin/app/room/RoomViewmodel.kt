@@ -156,6 +156,7 @@ class RoomViewmodel(
                     Preferences.PLAYER_ENGINE.set(engine.name)
                 }
                 playerManager.player = engine.createImpl(this@RoomViewmodel)
+                playerManager.startPlaybackRateUpdates()
                 playerManager.isPlayerReady.value = true
                 loggy("Room: ${engine.name} ready ${roomEnteredAt.elapsedNow().inWholeMilliseconds}ms after entering the room")
             }

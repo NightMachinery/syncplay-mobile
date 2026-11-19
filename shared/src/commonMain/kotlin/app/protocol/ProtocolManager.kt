@@ -11,6 +11,10 @@ import app.protocol.models.PingService
 import app.protocol.wire.IgnoringOnTheFlyData
 import app.protocol.wire.PingData
 import app.protocol.wire.PlaystateData
+import app.protocol.wire.PlaybackSpeedData
+import app.protocol.wire.SetData
+import app.protocol.sync.RoomSpeed
+import app.protocol.sync.roomSpeedRange
 import app.protocol.wire.StateData
 import app.room.RoomViewmodel
 import app.protocol.sync.SyncState
@@ -32,6 +36,7 @@ import kotlinx.atomicfu.locks.synchronized
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.concurrent.Volatile
@@ -41,6 +46,31 @@ import kotlin.time.Instant
 class ProtocolManager(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel) {
 
     var session: Session = Session(this)
+
+    private val sharedSpeed = MutableStateFlow<RoomSpeed?>(null)
+    val roomSpeed = sharedSpeed.asStateFlow()
+
+    internal fun resetRoomSpeed() = synchronized(syncLock) {
+        sharedSpeed.value = null
+    }
+
+    internal fun readRoomSpeed(playstate: PlaystateData?) {
+        if (session.roomFeatures.sharedPlaybackSpeed && viewmodel.player.supportsSharedPlaybackSpeed) {
+            RoomSpeed.from(playstate)?.let { sharedSpeed.value = it }
+        }
+    }
+
+    internal fun requestRoomSpeed(rate: Double) = synchronized(syncLock) {
+        val current = sharedSpeed.value ?: return@synchronized
+        if (rate !in roomSpeedRange || rate == current.rate || !current.enabled ||
+            session.isInControlledRoomWithoutController() ||
+            viewmodel.networkManager.state.value != ConnectionState.CONNECTED
+        ) return@synchronized
+
+        viewmodel.networkManager.sendAsync(
+            WireMessage.Set(SetData(playbackSpeed = PlaybackSpeedData(current.revision, rate)))
+        )
+    }
 
     var globalPaused: Boolean = true
     var globalPositionMs: Double = 0.0
@@ -502,6 +532,7 @@ class ProtocolManager(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel)
 
     override fun invalidate() {
         stopChannelHealthMonitoring()
+        resetRoomSpeed()
         clearLocalStateIntents()
         lastStateReceivedAt = null
         lastGlobalUpdate = null
@@ -548,6 +579,7 @@ class ProtocolManager(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel)
      * and fast-forward state once `State` packets resume), and [pingService].
      */
     fun resetSyncAnchorForReconnect() = synchronized(syncLock) {
+        resetRoomSpeed()
         clearLocalStateIntents()
         endRoomChange()
         clockOffset.reset()
@@ -596,6 +628,7 @@ class ProtocolManager(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel)
         awaitingRoomResyncDeadline = awaitingRoomResyncDeadline,
         userOffsetSeconds = userTimeOffsetSeconds(),
         pendingSeekPositionMs = pendingSeekPositions.current?.targetMs,
+        roomRate = sharedSpeed.value?.rate ?: 1.0,
     )
 
     /**
@@ -652,7 +685,9 @@ class ProtocolManager(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel)
             PlaystateData(
                 position = position,
                 paused = !play,
-                doSeek = doSeek
+                doSeek = doSeek,
+                speedRevision = sharedSpeed.value?.revision,
+                localSpeed = sharedSpeed.value?.let { viewmodel.playerManager.appliedPlaybackRate },
             )
         } else null
 

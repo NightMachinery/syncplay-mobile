@@ -18,6 +18,7 @@ fun RoomViewmodel.switchRoom(name: String) {
 
     synchronized(protocol.syncLock) {
         protocol.clearLocalStateIntents()
+        protocol.resetRoomSpeed()
         session.currentRoom = target
         networkManager.sendAsync(WireMessage.roomChange(target))
         networkManager.sendAsync(WireMessage.listRequest())

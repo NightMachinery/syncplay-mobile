@@ -2,6 +2,7 @@ package app.protocol.event
 
 import androidx.annotation.UiThread
 import androidx.lifecycle.viewModelScope
+import kotlinx.atomicfu.locks.synchronized
 import app.AbstractManager
 import app.i18n.Localization
 import app.player.Playback
@@ -423,7 +424,10 @@ class RoomCallback(val viewmodel: RoomViewmodel) : AbstractManager(viewmodel) {
     }
 
     fun onNewControlledRoom(data: NewControlledRoom) {
-        session.currentRoom = data.roomName
+        synchronized(viewmodel.protocol.syncLock) {
+            viewmodel.protocol.resetRoomSpeed()
+            session.currentRoom = data.roomName
+        }
         session.currentOperatorPassword = data.password
 
         /* The notice tells the user that the operator join string is on their clipboard. The

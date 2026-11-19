@@ -40,6 +40,7 @@ data class PositionInputs(
     val userOffsetSeconds: Double = 0.0,
     /** Accepted seek whose player command is still queued on Main. */
     val pendingSeekPositionMs: Long? = null,
+    val roomRate: Double = 1.0,
 )
 
 /** The position to send, and whether masking should stay armed. */
@@ -52,7 +53,7 @@ const val SEEK_THRESHOLD_SECONDS = 1.0
 fun extrapolatedGlobalPositionMs(inputs: PositionInputs): Double {
     val anchor = inputs.globalPositionSetAt ?: return inputs.globalPositionMs
     if (inputs.globalPaused) return inputs.globalPositionMs
-    return inputs.globalPositionMs + (inputs.now - anchor).inWholeMilliseconds.toDouble()
+    return inputs.globalPositionMs + (inputs.now - anchor).inWholeMilliseconds * inputs.roomRate
 }
 
 /** Decides what to advertise. */

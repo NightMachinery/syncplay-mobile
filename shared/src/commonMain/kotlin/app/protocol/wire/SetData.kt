@@ -38,5 +38,14 @@ data class SetData(
      * `SetFeaturesIsInboundOnlyTest` keeps it that way.
      */
     @Serializable(with = LenientRoomFeaturesSerializer::class)
-    val features: RoomFeatures? = null
+    val features: RoomFeatures? = null,
+    val playbackSpeed: PlaybackSpeedData? = null
+)
+
+/** Deliberate rate request, or the server's acknowledgement of that request. */
+@Serializable
+data class PlaybackSpeedData(
+    val speedRevision: Long,
+    val speed: Double? = null,
+    val accepted: Boolean? = null,
 )

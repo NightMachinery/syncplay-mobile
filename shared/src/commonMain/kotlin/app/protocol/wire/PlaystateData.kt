@@ -12,5 +12,9 @@ data class PlaystateData(
     val doSeek: Boolean? = null,
     val position: Double? = null,
     val setBy: String? = null,
-    val paused: Boolean? = null
+    val paused: Boolean? = null,
+    val speed: Double? = null,
+    val speedEnabled: Boolean? = null,
+    val speedRevision: Long? = null,
+    val localSpeed: Double? = null
 )

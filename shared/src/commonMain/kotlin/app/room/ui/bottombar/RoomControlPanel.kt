@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.AspectRatio
 import androidx.compose.material.icons.filled.BrowseGallery
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Subtitles
+import androidx.compose.material.icons.filled.Speed
 import androidx.compose.material.icons.filled.TouchApp
 import androidx.compose.material.icons.filled.VideoSettings
 import app.i18n.Localization
@@ -63,6 +64,7 @@ import kotlinx.coroutines.delay
 import kotlin.time.Duration.Companion.milliseconds
 import app.uicomponents.controls.GlyphButton
 import app.uicomponents.controls.SecondaryAction
+import app.uicomponents.controls.Stepper
 import app.uicomponents.frames.Modal
 import app.uicomponents.frames.ModalSize
 import app.utils.ioDispatcher
@@ -99,6 +101,9 @@ fun RoomControlPanelCard(modifier: Modifier) {
     val viewmodel = LocalRoomViewmodel.current
     val cardController = LocalRoomUiState.current
 
+
+    var roomSpeedOpen by remember { mutableStateOf(false) }
+    val roomSpeed by viewmodel.protocol.roomSpeed.collectAsState()
 
     var pendingUndoSeek by remember { mutableStateOf<Pair<Long, Long>?>(null) }
     val undoNoConfirm by UNDO_SEEK_NO_CONFIRM.watchPref()
@@ -141,6 +146,12 @@ fun RoomControlPanelCard(modifier: Modifier) {
             }
         }
 
+        if (roomSpeed != null) {
+            GlyphButton(Icons.Filled.Speed, name = strings.roomSharedSpeed, size = Space.glyphLarge) {
+                roomSpeedOpen = true
+            }
+        }
+
         GlyphButton(Icons.Filled.BrowseGallery, name = strings.roomSeekTo, size = Space.glyphLarge) {
             cardController.toggleSeekTo()
         }
@@ -172,6 +183,25 @@ fun RoomControlPanelCard(modifier: Modifier) {
                 cardController.toggleTracks(true)
             }
         }
+    }
+
+    val speed = roomSpeed
+    if (speed != null) {
+        val users by viewmodel.session.userList.collectAsState()
+        val follower = viewmodel.session.isControlledRoom() &&
+            users.none { it.name == viewmodel.session.currentUsername && it.isController }
+        RoomSpeedModal(
+            open = roomSpeedOpen,
+            rate = speed.rate,
+            enabled = speed.enabled && !follower,
+            onDismiss = { roomSpeedOpen = false },
+            onApply = {
+                viewmodel.protocol.requestRoomSpeed(it)
+                roomSpeedOpen = false
+            },
+        )
+    } else {
+        LaunchedEffect(Unit) { roomSpeedOpen = false }
     }
 
     UndoSeekModal(
@@ -243,6 +273,39 @@ private fun UndoSeekModal(seek: Pair<Long, Long>?, onDismiss: () -> Unit, onUndo
                 style = Type.note,
                 color = palette.inkDim,
             )
+        }
+    }
+}
+
+@Composable
+private fun RoomSpeedModal(
+    open: Boolean,
+    rate: Double,
+    enabled: Boolean,
+    onDismiss: () -> Unit,
+    onApply: (Double) -> Unit,
+) {
+    if (!open) return
+    val rates = remember(rate) { ((1..16).map { it / 4.0 } + rate).distinct().sorted() }
+    val labels = remember(rates) { rates.map { "${it}×" } }
+    var selected by remember(rate) { mutableStateOf(rates.indexOf(rate)) }
+    val title = strings.roomSharedSpeed
+
+    Modal(
+        open = true,
+        onDismiss = onDismiss,
+        title = title,
+        size = ModalSize.Ask,
+        actions = {
+            SecondaryAction(strings.roomUndoSeekCancel, onClick = onDismiss)
+            AccentAction(strings.roomSharedSpeedApply, enabled = enabled && rates[selected] != rate,
+                onClick = { onApply(rates[selected]) })
+        },
+    ) {
+        Stepper(options = labels, index = selected, onIndex = { selected = it },
+            enabled = enabled, name = title)
+        if (!enabled) {
+            Text(strings.roomSharedSpeedUnavailable, style = Type.note, color = palette.inkDim)
         }
     }
 }
