@@ -19,7 +19,7 @@ import kotlinx.serialization.json.jsonPrimitive
  */
 object UpdateCheck {
 
-    private const val LATEST = "https://api.github.com/repos/yuroyami/syncplay-mobile/releases/latest"
+    private const val LATEST = "https://api.github.com/repos/NightMachinery/syncplay-mobile/releases/latest"
 
     /** The outcome of one update check. */
     sealed interface Result {
@@ -40,7 +40,7 @@ object UpdateCheck {
         val url = json["html_url"]?.jsonPrimitive?.content.orEmpty()
         when {
             tag.isEmpty() || url.isEmpty() -> Result.Unreachable
-            isNewer(tag, KiteBuildConfig.APP_VERSION) -> Result.Newer(tag, url)
+            isNewer(tag, "${KiteBuildConfig.APP_VERSION}-night.${KiteBuildConfig.NIGHT_VERSION}") -> Result.Newer(tag, url)
             else -> Result.UpToDate
         }
     } catch (cancelled: CancellationException) {
@@ -56,13 +56,15 @@ object UpdateCheck {
      * by its leading digits, and a part without any counts as zero.
      */
     internal fun isNewer(candidate: String, installed: String): Boolean {
-        val a = candidate.split('.').map { it.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
-        val b = installed.split('.').map { it.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
+        val a = candidate.substringBefore("-night.").split('.').map { it.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
+        val b = installed.substringBefore("-night.").split('.').map { it.takeWhile(Char::isDigit).toIntOrNull() ?: 0 }
         for (i in 0 until maxOf(a.size, b.size)) {
             val left = a.getOrElse(i) { 0 }
             val right = b.getOrElse(i) { 0 }
             if (left != right) return left > right
         }
-        return false
+        val candidateNight = candidate.substringAfter("-night.", "").toIntOrNull() ?: 0
+        val installedNight = installed.substringAfter("-night.", "").toIntOrNull() ?: 0
+        return candidateNight > installedNight
     }
 }

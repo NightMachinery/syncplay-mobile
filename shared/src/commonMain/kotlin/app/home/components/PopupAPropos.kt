@@ -179,7 +179,7 @@ object PopupAPropos {
             modifier = Modifier.fillMaxWidth().padding(bottom = Space.gapTight),
             horizontalArrangement = Arrangement.spacedBy(Space.gutter, Alignment.CenterHorizontally),
         ) {
-            Text(strings.aboutVersionValue(KiteBuildConfig.APP_VERSION), style = Type.value, color = p.inkDim, maxLines = 1)
+            Text(strings.aboutVersionValue("${KiteBuildConfig.APP_VERSION} (Night ${KiteBuildConfig.NIGHT_VERSION})"), style = Type.value, color = p.inkDim, maxLines = 1)
             Text(strings.aboutAuthor, style = Type.value, color = p.inkDim, maxLines = 1)
             Text(strings.aboutWebsite, style = Type.value, color = p.inkDim, maxLines = 1)
         }

@@ -1,3 +1,5 @@
+**SyncPlayU for Android** adds shared playback speed with ExoPlayer and mpv. It installs alongside Synkplay. [Setup and speed controls](docs/SHARED-PLAYBACK-SPEED.md) · [Android downloads](https://github.com/NightMachinery/syncplay-mobile/releases/latest)
+
 <p align="center">
   <img src="art/synkplay_app_badge_512.png" width="180" height="180" alt="Synkplay logo on its original white-grey background with rounded app badge corners">
 </p>

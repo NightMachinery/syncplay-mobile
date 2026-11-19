@@ -63,8 +63,8 @@ if (providers.gradleProperty("useMavenLocal").orNull.toBoolean()) {
 }
 
 kiteConfig {
-    appName = "Synkplay"
-    appId = "com.yuroyami.syncplay"
+    appName = "SyncPlayU"
+    appId = "io.github.nightmachinery.syncplayu"
     version = "0.26.0"
     // KiteConfig 2.1.0 turns its Android wiring off above AGP 9.3. The app builds on 9.4, so the
     // guard is overridden until a KiteConfig release supports it.
@@ -86,7 +86,7 @@ kiteConfig {
         // KiteConfig applies the app identity in AGP finalizeDsl, after the module DSL blocks.
         // So the applicationId swap for the exoOnly flavor (ExoPlayer only, no native player
         // library) happens here, not in androidApp's defaultConfig.
-        if (exoOnly) appId = "com.reddnek.syncplay"
+        if (exoOnly) appId = "io.github.nightmachinery.syncplayu.exo"
         version { rebuild = 1 }
         sdk(
             min = providers.gradleProperty("android.minSdk").get().toInt(),
@@ -130,6 +130,7 @@ kiteConfig {
         packageName = "SyncplayMobile.shared"
         stringField("APP_NAME", kiteConfig.appName)
         stringField("APP_VERSION", kiteConfig.version)
+        stringField("NIGHT_VERSION", "1")
         // The name is IS_DEBUG, not DEBUG. KiteConfig generates a public object, so every field
         // appears in the exported Objective-C header. Xcode defines DEBUG=1 in Debug
         // configurations, so "BOOL DEBUG" becomes "BOOL 1" and every iOS Debug build fails to
